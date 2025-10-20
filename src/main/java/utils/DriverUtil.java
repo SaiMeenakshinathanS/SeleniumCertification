@@ -7,20 +7,49 @@ import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.SessionId;
 
 import java.net.URL;
 import java.net.MalformedURLException;
 
 public class DriverUtil {
     private static ThreadLocal<WebDriver> driver = new ThreadLocal<>();
-
-    private static final String LT_USERNAME = System.getenv("LT_USERNAME");
-    private static final String LT_ACCESS_KEY = System.getenv("LT_ACCESS_KEY");
-    private static final String LT_GRID_URL = "https://" + LT_USERNAME + ":" + LT_ACCESS_KEY + "@hub.lambdatest.com/wd/hub";
+    // store LambdaTest session id per thread for parallel runs
+    private static ThreadLocal<String> ltSessionId = new ThreadLocal<>();
 
     private static WebDriver createDriver(String driverName, String platform) {
         try {
-            if (System.getenv("USE_LAMBDATEST") != null && System.getenv("USE_LAMBDATEST").equalsIgnoreCase("true")) {
+            // Resolve credentials from environment variables or system properties (support multiple common names)
+            String ltUser = System.getenv("LT_USERNAME");
+            if (ltUser == null || ltUser.isEmpty()) {
+                ltUser = System.getenv("LAMBDATEST_USERNAME");
+            }
+            if (ltUser == null || ltUser.isEmpty()) {
+                ltUser = System.getProperty("LT_USERNAME");
+            }
+            if (ltUser == null || ltUser.isEmpty()) {
+                ltUser = System.getProperty("lambdatest.username");
+            }
+
+            String ltKey = System.getenv("LT_ACCESS_KEY");
+            if (ltKey == null || ltKey.isEmpty()) {
+                ltKey = System.getenv("LAMBDATEST_ACCESS_KEY");
+            }
+            if (ltKey == null || ltKey.isEmpty()) {
+                ltKey = System.getProperty("LT_ACCESS_KEY");
+            }
+            if (ltKey == null || ltKey.isEmpty()) {
+                ltKey = System.getProperty("lambdatest.accesskey");
+            }
+
+            String useLT = System.getenv("USE_LAMBDATEST");
+            if (useLT == null || useLT.isEmpty()) {
+                useLT = System.getProperty("USE_LAMBDATEST", "false");
+            }
+
+            if (useLT != null && useLT.equalsIgnoreCase("true") && ltUser != null && ltKey != null) {
+                String ltGridUrl = "https://" + ltUser + ":" + ltKey + "@hub.lambdatest.com/wd/hub";
+
                 DesiredCapabilities capabilities = new DesiredCapabilities();
                 if (driverName.equalsIgnoreCase("chrome")) {
                     capabilities.setCapability("browserName", "Chrome");
@@ -35,7 +64,17 @@ public class DriverUtil {
                     capabilities.setCapability("version", "latest");
                     capabilities.setCapability("platform", "Windows 10");
                 }
-                driver.set(new RemoteWebDriver(new URL(LT_GRID_URL), capabilities));
+
+                RemoteWebDriver remote = new RemoteWebDriver(new URL(ltGridUrl), capabilities);
+                driver.set(remote);
+
+                // fetch and store session id for this thread and print it (explicit format expected for submission)
+                SessionId sid = remote.getSessionId();
+                if (sid != null) {
+                    ltSessionId.set(sid.toString());
+                    System.out.println("LT_SESSION_ID=" + sid.toString());
+                }
+
             } else {
                 if(driverName.equalsIgnoreCase("firefox")) {
                     WebDriverManager.firefoxdriver().setup();
@@ -70,11 +109,16 @@ public class DriverUtil {
         return driver.get();
     }
 
+    public static String getSessionId() {
+        return ltSessionId.get();
+    }
+
     public static void quitDriver() {
         if (driver.get() != null) {
             System.out.println("[DriverUtil] Quitting driver on thread: " + Thread.currentThread().getId());
             driver.get().quit();
             driver.remove();
+            ltSessionId.remove();
         } else {
             System.out.println("[DriverUtil] No driver to quit on thread: " + Thread.currentThread().getId());
         }
