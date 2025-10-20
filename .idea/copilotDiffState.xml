@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/src/main/java/utils/Hooks.java">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/src/main/java/utils/Hooks.java" />
+              <option name="originalContent" value="package utils;&#10;&#10;import io.cucumber.java.After;&#10;import io.cucumber.java.Before;&#10;&#10;public class Hooks {&#10;    @Before&#10;    public void setUp() {&#10;        DriverUtil.getDriver(); // Initialize driver before each scenario&#10;    }&#10;&#10;    @After&#10;    public void tearDown() {&#10;        DriverUtil.quitDriver(); // Quit driver after each scenario&#10;    }&#10;}&#10;&#10;" />
+              <option name="updatedContent" value="package utils;&#10;&#10;import io.cucumber.java.After;&#10;import io.cucumber.java.Before;&#10;import org.openqa.selenium.WebDriver;&#10;import org.openqa.selenium.remote.RemoteWebDriver;&#10;&#10;public class Hooks {&#10;    @Before&#10;    public void setUp() {&#10;        DriverUtil.getDriver(); // Initialize driver before each scenario&#10;    }&#10;&#10;    @After&#10;    public void tearDown() {&#10;        WebDriver driver = DriverUtil.getDriver();&#10;        if (driver instanceof RemoteWebDriver) {&#10;            String sessionId = ((RemoteWebDriver) driver).getSessionId().toString();&#10;            System.out.println(&quot;LambdaTest Session ID: &quot; + sessionId);&#10;        }&#10;        DriverUtil.quitDriver(); // Quit driver after each scenario&#10;    }&#10;}" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
